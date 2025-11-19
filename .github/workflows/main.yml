@@ -1,0 +1,27 @@
+name: PR Verification (CI)
+
+# Se déclenche UNIQUEMENT sur les Pull Requests
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  verify-code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Astuce : Pas besoin de Docker ici, on teste juste le code JS/Java
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install Dependencies
+        run: npm ci
+      
+      - name: Verify Build (Compilation)
+        run: npm run build
+      
+      # Si cette étape passe, GitHub affichera "All checks passed" ✅
