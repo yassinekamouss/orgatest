@@ -226,8 +226,7 @@ function App() {
 
       <section style={{ border: '1px solid #aaddaa', padding: '20px', borderRadius: '8px', backgroundColor: '#e9ffe9' }}>
         <h2>2. Simuler un profil d'applicant et tester l'éligibilité</h2>
-        <p>Modifiez les informations du profil ci-dessous pour voir si l'applicant est éligible selon les règles définies.</p>
-
+        <p>blablablablablabla bla</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
           {fields.map(field => (
             <div key={field.name} style={{ display: 'flex', flexDirection: 'column' }}>
