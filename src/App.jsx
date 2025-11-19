@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { QueryBuilder, ValueEditor } from 'react-querybuilder';
 import 'react-querybuilder/dist/query-builder.scss';
 
@@ -277,3 +277,6 @@ function App() {
 }
 
 export default App;
+
+
+// some changes made here
