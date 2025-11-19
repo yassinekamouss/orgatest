@@ -1,28 +1,27 @@
-name: CI Pipeline
+name: PR Verification (CI)
 
-# Ce workflow se déclenche sur les PRs vers main ET les push sur main
+# Se déclenche UNIQUEMENT sur les Pull Requests
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  build-and-test:
+  verify-code:
     runs-on: ubuntu-latest
-    
     steps:
-      # Etape 1 : Simuler une préparation
-      - name: Préparation de l'environnement
-        run: echo "Initialisation du pipeline DevOps..."
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # Etape 2 : La pause de 5 secondes demandée
-      - name: Simulation du Build & Test (Wait)
-        run: |
-          echo "Construction de l'image Docker en cours (simulation)..."
-          sleep 5
-          echo "Tests unitaires en cours (simulation)..."
-
-      # Etape 3 : Succès
-      - name: Validation
-        run: echo "✅ Pipeline terminé avec succès. Prêt pour le merge."
+      # Astuce : Pas besoin de Docker ici, on teste juste le code JS/Java
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install Dependencies
+        run: npm ci
+      
+      - name: Verify Build (Compilation)
+        run: npm run build
+      
+      # Si cette étape passe, GitHub affichera "All checks passed" ✅
