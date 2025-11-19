@@ -276,10 +276,4 @@ function App() {
   );
 }
 
-export default App;
-
-
-// some changes made here
-
-
-// this is a comment that going to be pushed in a feature/new-comment branch
+export deflt App; // Export the App component as default
