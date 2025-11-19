@@ -2,20 +2,27 @@ pipeline {
     agent any
 
     tools {
-        // Assurez-vous d'avoir configuré cet outil dans Jenkins > Global Tool Configuration
-        // Le nom 'NodeJS' doit correspondre à celui configuré
         nodejs 'NodeJS' 
     }
 
     environment {
-        // Nom de l'image locale (sera taguée avec le numéro de build)
-        IMAGE_NAME = "orgatest-react"
+        // 1. VOTRE USERNAME DOCKER HUB (Obligatoire pour le push)
+        DOCKERHUB_USERNAME = 'votre-username-dockerhub'
+        
+        // 2. Le nom de votre application
+        APP_NAME = 'orgatest-react'
+        
+        // 3. Nom complet de l'image (ex: yassine/orgatest:12)
+        FULL_IMAGE_NAME = "${DOCKERHUB_USERNAME}/${APP_NAME}:${env.BUILD_NUMBER}"
+        
+        // 4. Récupération des identifiants sécurisés depuis Jenkins
+        // Remplacez 'dockerhub-id' par l'ID que vous avez donné dans "Manage Credentials"
+        DOCKER_CREDS = credentials('dockerhub-id')
     }
 
     stages {
         stage('Checkout SCM') {
             steps {
-                // Récupère le code depuis la branche configurée dans le job Jenkins
                 checkout scm
             }
         }
@@ -23,7 +30,6 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installation des dépendances...'
-                // Installation propre des paquets node
                 sh 'npm ci' 
             }
         }
@@ -31,7 +37,6 @@ pipeline {
         stage('Build React App') {
             steps {
                 echo 'Compilation de l\'application React...'
-                // Génère le dossier /build (ou /dist pour Vite)
                 sh 'npm run build'
             }
         }
@@ -39,17 +44,49 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo "Construction de l'image Docker..."
-                    // On construit l'image en utilisant le Dockerfile
-                    // On passe le tag du build courant
-                    sh "docker build -t ${IMAGE_NAME}:${env.BUILD_NUMBER} ."
+                    echo "Construction de l'image : ${FULL_IMAGE_NAME}"
+                    sh "docker build -t ${FULL_IMAGE_NAME} ."
                 }
             }
         }
 
-        stage('Validation') {
+        stage('Login to Docker Hub') {
             steps {
-                echo "Succès ! L'image ${IMAGE_NAME}:${env.BUILD_NUMBER} a été construite localement."
+                script {
+                    echo "Connexion au Docker Hub..."
+                    // Utilisation sécurisée du mot de passe via la variable d'environnement
+                    // --password-stdin est la méthode la plus sécurisée (évite les warnings)
+                    sh 'echo $DOCKER_CREDS_PSW | docker login -u $DOCKER_CREDS_USR --password-stdin'
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    echo "Envoi de l'image vers Docker Hub..."
+                    // Push de la version avec le numéro de build (ex: :5)
+                    sh "docker push ${FULL_IMAGE_NAME}"
+                    
+                    // (Optionnel) Création et push du tag 'latest'
+                    // C'est une bonne pratique pour que les gens puissent faire 'docker pull' sans connaitre le numéro
+                    sh "docker tag ${FULL_IMAGE_NAME} ${DOCKERHUB_USERNAME}/${APP_NAME}:latest"
+                    sh "docker push ${DOCKERHUB_USERNAME}/${APP_NAME}:latest"
+                }
+            }
+        }
+    }
+
+    // Cette section s'exécute toujours à la fin, même en cas d'erreur
+    post {
+        always {
+            script {
+                echo 'Nettoyage...'
+                // On se déconnecte par sécurité
+                sh 'docker logout'
+                // On supprime l'image locale pour ne pas saturer le disque du serveur Jenkins
+                sh "docker rmi ${FULL_IMAGE_NAME} || true"
+                sh "docker rmi ${DOCKERHUB_USERNAME}/${APP_NAME}:latest || true"
             }
         }
     }
