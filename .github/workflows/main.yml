@@ -1,0 +1,28 @@
+name: CI Pipeline
+
+# Ce workflow se déclenche sur les PRs vers main ET les push sur main
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Etape 1 : Simuler une préparation
+      - name: Préparation de l'environnement
+        run: echo "Initialisation du pipeline DevOps..."
+
+      # Etape 2 : La pause de 5 secondes demandée
+      - name: Simulation du Build & Test (Wait)
+        run: |
+          echo "Construction de l'image Docker en cours (simulation)..."
+          sleep 5
+          echo "Tests unitaires en cours (simulation)..."
+
+      # Etape 3 : Succès
+      - name: Validation
+        run: echo "✅ Pipeline terminé avec succès. Prêt pour le merge."
