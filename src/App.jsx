@@ -280,3 +280,8 @@ export default App;
 
 
 // some changes made here
+
+
+// updated evaluateRule to handle type coercion between strings and numbers
+// added BetweenInput component for handling 'between' operator
+// improved styling for better user experience
