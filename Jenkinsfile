@@ -82,11 +82,18 @@ pipeline {
         always {
             script {
                 echo 'Nettoyage...'
-                // On se déconnecte par sécurité
                 sh 'docker logout'
-                // On supprime l'image locale pour ne pas saturer le disque du serveur Jenkins
                 sh "docker rmi ${FULL_IMAGE_NAME} || true"
                 sh "docker rmi ${DOCKERHUB_USERNAME}/${APP_NAME}:latest || true"
+            }
+        }
+        success {
+            script {
+                echo "Le Build est un succès ! Lancement du déploiement... 🚀"
+                // C'est ICI que la magie opère :
+                // On appelle le job 'deploy-orgatest-minikube'
+                // Et on lui donne le paramètre IMAGE_TAG avec notre numéro de build
+                build job: 'deploy-orgatest-minikube', parameters: [string(name: 'IMAGE_TAG', value: "${env.BUILD_NUMBER}")]
             }
         }
     }
