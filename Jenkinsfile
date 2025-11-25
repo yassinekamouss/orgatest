@@ -1,75 +1,61 @@
 pipeline {
     agent any
 
+    // Assure-toi d'avoir configuré "NodeJS" dans "Global Tool Configuration"
     tools {
         nodejs 'NodeJS' 
     }
 
     environment {
-        // 1. VOTRE USERNAME DOCKER HUB (Obligatoire pour le push)
+        // TES INFOS
         DOCKERHUB_USERNAME = 'yassinekamouss'
-        
-        // 2. Le nom de votre application
         APP_NAME = 'orgatest-react'
         
-        // 3. Nom complet de l'image (ex: yassine/orgatest:12)
+        // Le nom complet : yassinekamouss/orgatest-react:42
         FULL_IMAGE_NAME = "${DOCKERHUB_USERNAME}/${APP_NAME}:${env.BUILD_NUMBER}"
         
-        // 4. Récupération des identifiants sécurisés depuis Jenkins
-        // Remplacez 'dockerhub-id' par l'ID que vous avez donné dans "Manage Credentials"
+        // LA CLEF DU COFFRE 🔑
+        // Il faut créer ce "Credential" (Username with password) dans Jenkins avec l'ID exact :
         DOCKER_CREDS = credentials('yassinekamouss-dockerhub')
     }
 
     stages {
-        stage('Checkout SCM') {
+        stage('1. Récupérer le Code (Checkout)') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Install Dependencies') {
+        stage('2. Préparer le code React') {
             steps {
-                echo 'Installation des dépendances...'
+                echo '☕ On prépare les ingrédients...'
                 sh 'npm ci' 
-            }
-        }
-
-        stage('Build React App') {
-            steps {
-                echo 'Compilation de l\'application React...'
                 sh 'npm run build'
+                // Cela crée le dossier "build" ou "dist" que Docker va copier
             }
         }
 
-        stage('Build Docker Image') {
+        stage('3. Construire la Boîte (Docker Build)') {
             steps {
                 script {
-                    echo "Construction de l'image : ${FULL_IMAGE_NAME}"
+                    echo "📦 Emballage en cours..."
                     sh "docker build -t ${FULL_IMAGE_NAME} ."
                 }
             }
         }
 
-        stage('Login to Docker Hub') {
+        stage('4. Connexion & Envoi (Login & Push)') {
             steps {
                 script {
-                    echo "Connexion au Docker Hub..."
-                    // Utilisation sécurisée du mot de passe via la variable d'environnement
-                    // --password-stdin est la méthode la plus sécurisée (évite les warnings)
+                    echo "🚚 Le camion part vers Docker Hub..."
+                    
+                    // Connexion sécurisée (Le mot de passe ne s'affiche pas dans les logs)
                     sh 'echo $DOCKER_CREDS_PSW | docker login -u $DOCKER_CREDS_USR --password-stdin'
-                }
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                script {
-                    echo "Envoi de l'image vers Docker Hub..."
-                    // Push de la version avec le numéro de build (ex: :5)
+                    
+                    // Envoi de la version précise (ex: v12)
                     sh "docker push ${FULL_IMAGE_NAME}"
                     
-                    // (Optionnel) Création et push du tag 'latest'
-                    // C'est une bonne pratique pour que les gens puissent faire 'docker pull' sans connaitre le numéro
+                    // Création et envoi de l'étiquette "latest" (La dernière version)
                     sh "docker tag ${FULL_IMAGE_NAME} ${DOCKERHUB_USERNAME}/${APP_NAME}:latest"
                     sh "docker push ${DOCKERHUB_USERNAME}/${APP_NAME}:latest"
                 }
@@ -77,24 +63,18 @@ pipeline {
         }
     }
 
-    // Cette section s'exécute toujours à la fin, même en cas d'erreur
     post {
         always {
             script {
-                echo 'Nettoyage...'
+                echo '🧹 Nettoyage de l\'usine...'
                 sh 'docker logout'
+                // On supprime les images locales pour ne pas remplir le disque du serveur Jenkins
                 sh "docker rmi ${FULL_IMAGE_NAME} || true"
                 sh "docker rmi ${DOCKERHUB_USERNAME}/${APP_NAME}:latest || true"
             }
         }
         success {
-            script {
-                echo "Le Build est un succès ! Lancement du déploiement... 🚀"
-                // C'est ICI que la magie opère :
-                // On appelle le job 'deploy-orgatest-minikube'
-                // Et on lui donne le paramètre IMAGE_TAG avec notre numéro de build
-                build job: 'deploy-orgatest-minikube', parameters: [string(name: 'IMAGE_TAG', value: "${env.BUILD_NUMBER}")]
-            }
+            echo "✅ Succès ! L'image est bien au chaud sur Docker Hub."
         }
     }
 }
